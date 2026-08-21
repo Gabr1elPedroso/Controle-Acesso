@@ -1,0 +1,54 @@
+package com.gap.banco;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+public class ConexaoSQLite {
+
+    private static final String URL = "jdbc:sqlite:gap.db";
+
+    public static Connection conectar() {
+        try {
+            return DriverManager.getConnection(URL);
+        } catch (SQLException e) {
+            System.out.println("Erro ao conectar ao banco de dados: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public static void criarTabela() {
+        String sql = "CREATE TABLE IF NOT EXISTS usuarios ("
+                + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + "nome TEXT NOT NULL,"
+                + "matricula TEXT NOT NULL UNIQUE,"
+                + "id_control_id INTENGER"
+                + ");";
+
+        try (Connection conn = conectar(); Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+            System.out.println("Tabela 'usuarios' carregada com sucesso");
+
+        } catch (Exception e) {
+            System.out.println("Erro ao criar a tabela 'usuarios': " + e.getMessage());
+        }
+    }
+
+    public static void salvarUsuarioLocal(String nome, String matricula, long idControlId) {
+        String sql = "INSERT INTO usuarios(nome, matricula, id_control_id) VALUES()(?, ?, ?);";
+        try (Connection conn = conectar(); PreparedStatement pstmt = conn.prepareStatement(sql)
+                
+            ){
+        pstmt.setString(1, nome);
+                pstmt.setString(2, matricula);
+                pstmt.setLong(3, idControlId);
+
+                pstmt.executeUpdate();
+                System.out.println("Pessoa salva com sucesso");
+            }catch (Exception e) {
+        System.out.println("Erro ao salvar a pessoa: " + e.getMessage());
+    }
+        }
+    }
