@@ -68,6 +68,14 @@ public class EquipamentoController {
             String ip = campoIp.getText().trim();
             String usuario = campoUsuario.getText().trim();
             String senha = campoSenha.getText().trim();
+            int porta;
+
+            try {
+                porta = Integer.parseInt(campoPorta.getText().trim());
+            } catch (NumberFormatException e) {
+                mostrarAlerta("Atenção", "Porta Inválida", "A porta deve ser um número inteiro.", Alert.AlertType.WARNING);
+                return;
+            }
 
             if (nome.isEmpty() || ip.isEmpty()) {
                 mostrarAlerta("Atenção", "Preenchimento Obrigatório", "Nome e IP são obrigatórios.", Alert.AlertType.WARNING);
@@ -76,9 +84,9 @@ public class EquipamentoController {
 
             boolean sucesso;
             if (equipamentoSelecionado == null) {
-                sucesso = ConexaoSQLite.salvarEquipamento(nome, ip, usuario, senha);
+                sucesso = ConexaoSQLite.salvarEquipamento(nome, ip, porta, usuario, senha);
             } else {
-                sucesso = ConexaoSQLite.atualizarEquipamento(equipamentoSelecionado.getId(), nome, ip, usuario, senha);
+                sucesso = ConexaoSQLite.atualizarEquipamento(equipamentoSelecionado.getId(), nome, ip, porta, usuario, senha);
             }
 
             if (sucesso) {

@@ -54,6 +54,7 @@ public class ConexaoSQLite {
                     + "usuario TEXT NOT NULL DEFAULT 'admin', "
                     + "senha TEXT NOT NULL DEFAULT 'admin', "
                     + "status TEXT DEFAULT 'Desconhecido'"
+                    + "porta INTEGER NOT NULL DEFAULT 80, "
                     + ");";
             stmt.execute(sqlEquipamentos);
 
@@ -260,13 +261,14 @@ public class ConexaoSQLite {
     // CRUD DE EQUIPAMENTOS (iDFace)
     // ==========================================
 
-    public static boolean salvarEquipamento(String nome, String ip, String usuario, String senha) {
-        String sql = "INSERT INTO equipamentos (nome, ip, usuario, senha, status) VALUES (?, ?, ?, ?, 'Desconhecido')";
+    public static boolean salvarEquipamento(String nome, String ip, int porta, String usuario, String senha) {
+        String sql = "INSERT INTO equipamentos (nome, ip, porta, usuario, senha, status) VALUES (?, ?, ?, ?, 'Desconhecido')";
         try (Connection conn = conectar(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, nome);
-            pstmt.setString(2, ip);
-            pstmt.setString(3, usuario);
-            pstmt.setString(4, senha);
+    pstmt.setString(2, ip);
+    pstmt.setInt(3, porta); // NOVO
+    pstmt.setString(4, usuario);
+    pstmt.setString(5, senha);
             return pstmt.executeUpdate() > 0;
         } catch (Exception e) {
             System.out.println("Erro ao salvar equipamento: " + e.getMessage());
@@ -283,28 +285,27 @@ public class ConexaoSQLite {
             
             while (rs.next()) {
                 lista.add(new Equipamento(
-                        rs.getInt("id"),
-                        rs.getString("nome"),
-                        rs.getString("ip"),
-                        rs.getString("usuario"),
-                        rs.getString("senha"),
-                        rs.getString("status")
+            rs.getInt("id"),
+            rs.getString("nome"),
+            rs.getString("ip"),
+            rs.getInt("porta"), // NOVO
+            rs.getString("usuario"),
                 ));
-            }
-        } catch (Exception e) {
+} catch (Exception e) {
             System.out.println("Erro ao listar equipamentos: " + e.getMessage());
         }
         return lista;
     }
 
     public static boolean atualizarEquipamento(int id, String nome, String ip, String usuario, String senha) {
-        String sql = "UPDATE equipamentos SET nome = ?, ip = ?, usuario = ?, senha = ? WHERE id = ?";
+        String sql = "UPDATE equipamentos SET nome = ?, ip = ?, porta = ? usuario = ?, senha = ? WHERE id = ?";
         try (Connection conn = conectar(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, nome);
             pstmt.setString(2, ip);
-            pstmt.setString(3, usuario);
-            pstmt.setString(4, senha);
-            pstmt.setInt(5, id);
+            pstmt.setInt(3, porta);
+            pstmt.setString(4, usuario);
+            pstmt.setString(5, senha);
+            pstmt.setInt(6, id);
             return pstmt.executeUpdate() > 0;
         } catch (Exception e) {
             System.out.println("Erro ao atualizar equipamento: " + e.getMessage());
@@ -323,4 +324,5 @@ public class ConexaoSQLite {
         }
     }
 
+}
 }
