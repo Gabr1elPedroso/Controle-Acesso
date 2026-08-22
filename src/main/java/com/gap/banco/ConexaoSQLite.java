@@ -228,4 +228,27 @@ public class ConexaoSQLite {
         }
     }
 
+    /**
+     * Atualiza um usuário existente no banco local pelo ID
+     */
+    public static boolean atualizarUsuario(int id, String nome, String matricula, int idCategoria, String fotoBase64) {
+        String sql = "UPDATE usuarios SET nome = ?, matricula = ?, categoria_id = ?, foto_base64 = ? WHERE id = ?";
+        
+        try (Connection conn = conectar();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, nome);
+            pstmt.setString(2, matricula);
+            pstmt.setInt(3, idCategoria);
+            pstmt.setString(4, fotoBase64);
+            pstmt.setInt(5, id);
+            
+            return pstmt.executeUpdate() > 0;
+            
+        } catch (Exception e) {
+            System.out.println("Erro ao atualizar usuário: " + e.getMessage());
+            return false;
+        }
+    }
+
 }
