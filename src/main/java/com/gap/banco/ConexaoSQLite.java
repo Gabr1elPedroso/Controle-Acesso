@@ -63,6 +63,22 @@ public class ConexaoSQLite {
                     + ");";
             stmt.execute(sqlUsuarios);
 
+            // Criação da tabela de acesso ao sistema
+            String sqlAdmins = "CREATE TABLE IF NOT EXISTS usuarios_sistema ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + "login TEXT NOT NULL UNIQUE, "
+                    + "senha TEXT NOT NULL"
+                    + ");";
+            stmt.execute(sqlAdmins);
+
+            // Insere o usuário padrão (admin / admin123) se a tabela estiver vazia
+            String verificaAdmin = "SELECT COUNT(*) AS total FROM usuarios_sistema";
+            java.sql.ResultSet rs = stmt.executeQuery(verificaAdmin);
+            if (rs.next() && rs.getInt("total") == 0) {
+                stmt.execute("INSERT INTO usuarios_sistema (login, senha) VALUES ('Gap', '2215')");
+                System.out.println("Usuário administrador padrão criado com sucesso.");
+            }
+
             // 4. Tabela de Mapeamento (Relaciona o Usuário ao ID específico de cada Equipamento)
             String sqlEquipamentoUsers = "CREATE TABLE IF NOT EXISTS equipamento_usuarios ("
                     + "usuario_id INTEGER, "
