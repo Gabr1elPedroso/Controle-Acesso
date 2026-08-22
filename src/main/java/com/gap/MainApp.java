@@ -13,7 +13,7 @@ public class MainApp extends Application {
     @Override
     public void start(Stage palcoPrincipal) throws Exception {
         // Busca o arquivo FXML na pasta resources
-        URL arquivoFXML = getClass().getResource("/com/gap/layout_principal.fxml");
+        URL arquivoFXML = getClass().getResource("/layout_principal.fxml");
         
         if (arquivoFXML == null) {
             System.out.println("Erro: Arquivo layout_principal.fxml não encontrado!");
