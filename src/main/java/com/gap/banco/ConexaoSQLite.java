@@ -172,4 +172,24 @@ public class ConexaoSQLite {
         return lista;
     }
 
+    /**
+     * Remove um usuário do banco local pelo ID
+     */
+    public static boolean excluirUsuario(int idUsuario) {
+        String sql = "DELETE FROM usuarios WHERE id = ?";
+
+        try (Connection conn = conectar();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, idUsuario);
+            int linhasAfetadas = pstmt.executeUpdate();
+
+            return linhasAfetadas > 0;
+
+        } catch (Exception e) {
+            System.out.println("Erro ao excluir usuário no banco: " + e.getMessage());
+            return false;
+        }
+    }
+
 }
