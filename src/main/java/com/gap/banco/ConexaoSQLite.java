@@ -143,4 +143,33 @@ public class ConexaoSQLite {
             return false;
         }
     }
+
+    /**
+     * Busca todos os usuários cadastrados no banco
+     */
+    public static java.util.List<com.gap.model.Pessoa> listarUsuarios() {
+        java.util.List<com.gap.model.Pessoa> lista = new java.util.ArrayList<>();
+        String sql = "SELECT id, nome, matricula, categoria_id, foto_base64 FROM usuarios ORDER BY nome ASC";
+
+        try (java.sql.Connection conn = conectar();
+             java.sql.Statement stmt = conn.createStatement();
+             java.sql.ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                com.gap.model.Pessoa p = new com.gap.model.Pessoa(
+                    rs.getInt("id"),
+                    rs.getString("nome"),
+                    rs.getString("matricula"),
+                    rs.getInt("categoria_id"),
+                    rs.getString("foto_base64")
+                );
+                lista.add(p);
+            }
+        } catch (Exception e) {
+            System.out.println("Erro ao listar usuários: " + e.getMessage());
+        }
+
+        return lista;
+    }
+
 }
