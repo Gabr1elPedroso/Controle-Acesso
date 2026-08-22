@@ -26,8 +26,7 @@ public class DashboardController {
 
     @FXML
     public void abrirTelaEquipamentos() {
-        // TODO: Criaremos essa tela depois
-        System.out.println("Abrindo tela de Equipamentos...");
+        carregarTela("/tela_equipamentos.fxml");
     }
 
     @FXML
