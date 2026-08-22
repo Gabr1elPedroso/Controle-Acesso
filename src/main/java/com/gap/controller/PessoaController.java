@@ -132,6 +132,43 @@ public class PessoaController {
                 mostrarAlerta("Erro", "Falha ao Salvar", "A matrícula pode já existir no sistema.", Alert.AlertType.ERROR);
             }
         });
+
+// --- LÓGICA DO BOTÃO EXCLUIR ---
+        btnExcluir.setOnAction(event -> {
+            Pessoa pessoaSelecionada = tabelaPessoas.getSelectionModel().getSelectedItem();
+
+            if (pessoaSelecionada == null) {
+                mostrarAlerta("Atenção", "Nenhuma Seleção", "Por favor, selecione uma pessoa na tabela para excluir.", Alert.AlertType.WARNING);
+                return;
+            }
+
+            // Pop-up de confirmação de segurança
+            Alert confirmacao = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmacao.setTitle("Confirmar Exclusão");
+            confirmacao.setHeaderText("Excluir Usuário");
+            confirmacao.setContentText("Tem certeza que deseja excluir " + pessoaSelecionada.getNome() + "? Esta ação não pode ser desfeita.");
+
+            // Se o usuário clicar em OK
+            confirmacao.showAndWait().ifPresent(resposta -> {
+                if (resposta == javafx.scene.control.ButtonType.OK) {
+                    
+                    // 1. Exclui do SQLite local
+                    boolean excluido = ConexaoSQLite.excluirUsuario(pessoaSelecionada.getId());
+
+                    if (excluido) {
+                        // TODO: Quando o iDFace estiver conectado, chamaremos aqui:
+                        // ControlIdService.excluirUsuario(ipEquipamento, token, idUsuarioAparelho);
+
+                        mostrarAlerta("Sucesso", "Usuário Removido", "O registro foi excluído com sucesso.", Alert.AlertType.INFORMATION);
+                        limparFormulario();
+                        carregarTabela(); // Atualiza a lista na hora!
+                    } else {
+                        mostrarAlerta("Erro", "Falha na Exclusão", "Não foi possível remover o registro do banco de dados.", Alert.AlertType.ERROR);
+                    }
+                }
+            });
+        });
+
     }
 
     private void configurarSelecaoTabela() {
