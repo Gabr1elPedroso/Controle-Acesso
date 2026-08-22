@@ -33,7 +33,8 @@ public class PessoaController {
     @FXML private TableColumn<Pessoa, String> colunaMatricula;
     @FXML private Button btnNovo;
 
-    // Lado Direito - Formulário
+    // Lado Direito - Contêiner e Formulário
+    @FXML private VBox painelFormulario;
     @FXML private ImageView fotoPerfil;
     @FXML private Button btnEscolherFoto;
     @FXML private TextField campoNome;
@@ -45,23 +46,25 @@ public class PessoaController {
     @FXML private Button btnSalvar;
 
     private ObservableList<Pessoa> listaPessoas = FXCollections.observableArrayList();
-    
-    // Variável para guardar a foto atual em formato Base64
     private String fotoBase64Atual = null;
+    
+    // Guarda a pessoa sendo editada (se for null, trata-se de um novo cadastro)
+    private Pessoa pessoaSelecionada = null;
 
     @FXML
     public void initialize() {
-        // Configura as colunas
         colunaNome.setCellValueFactory(new PropertyValueFactory<>("nome"));
         colunaMatricula.setCellValueFactory(new PropertyValueFactory<>("matricula"));
 
-        // Popula as opções de Categoria no ComboBox
         comboCategoria.setItems(FXCollections.observableArrayList(
             "1 - Funcionário",
             "2 - Visitante",
             "3 - Terceirizado",
             "4 - Diretoria"
         ));
+
+        // Inicia com o formulário oculto
+        painelFormulario.setVisible(false);
 
         carregarTabela();
         configurarBotoes();
@@ -77,10 +80,11 @@ public class PessoaController {
     private void configurarBotoes() {
         btnNovo.setOnAction(event -> {
             limparFormulario();
+            pessoaSelecionada = null; // Modo inclusão
             tabelaPessoas.getSelectionModel().clearSelection();
+            painelFormulario.setVisible(true); // Exibe o formulário limpo
         });
 
-        // --- SELEÇÃO DE FOTO ---
         btnEscolherFoto.setOnAction(event -> {
             FileChooser fileChooser = new FileChooser();
             fileChooser.setTitle("Selecione a Foto do Usuário");
@@ -88,97 +92,85 @@ public class PessoaController {
                 new FileChooser.ExtensionFilter("Imagens (JPG, PNG)", "*.jpg", "*.jpeg", "*.png")
             );
 
-            // Obtém a janela atual para abrir o explorador de arquivos nela
             Stage janelaAtual = (Stage) btnEscolherFoto.getScene().getWindow();
             File arquivoSelecionado = fileChooser.showOpenDialog(janelaAtual);
 
             if (arquivoSelecionado != null) {
                 try {
-                    // 1. Converte o arquivo para Base64 (Para o SQLite e Control iD)
                     byte[] bytesArquivo = Files.readAllBytes(arquivoSelecionado.toPath());
                     fotoBase64Atual = Base64.getEncoder().encodeToString(bytesArquivo);
-
-                    // 2. Exibe a imagem na tela usando o arquivo local
                     Image imagemCarregada = new Image(arquivoSelecionado.toURI().toString());
                     fotoPerfil.setImage(imagemCarregada);
-                    
                 } catch (Exception e) {
-                    mostrarAlerta("Erro", "Falha na Imagem", "Não foi possível carregar a imagem selecionada.", Alert.AlertType.ERROR);
+                    mostrarAlerta("Erro", "Falha na Imagem", "Não foi possível carregar a imagem.", Alert.AlertType.ERROR);
                 }
             }
         });
 
-        // --- SALVAR CADASTRO ---
+        // --- SALVAR / ATUALIZAR CADASTRO ---
         btnSalvar.setOnAction(event -> {
             String nome = campoNome.getText().trim();
             String matricula = campoMatricula.getText().trim();
             String catSelecionada = comboCategoria.getValue();
 
             if (nome.isEmpty() || matricula.isEmpty() || catSelecionada == null) {
-                mostrarAlerta("Atenção", "Preenchimento Obrigatório", "Preencha Nome, Matrícula e selecione uma Categoria.", Alert.AlertType.WARNING);
+                mostrarAlerta("Atenção", "Preenchimento Obrigatório", "Preencha Nome, Matrícula e Categoria.", Alert.AlertType.WARNING);
                 return;
             }
 
-            // Extrai o número do ID da categoria selecionada (Ex: "1 - Funcionário" vira 1)
             int idCategoria = Integer.parseInt(catSelecionada.split(" - ")[0]);
+            boolean sucesso;
 
-            boolean salvoComSucesso = ConexaoSQLite.salvarUsuario(nome, matricula, idCategoria, fotoBase64Atual);
+            if (pessoaSelecionada == null) {
+                // INSERT: Novo cadastro
+                sucesso = ConexaoSQLite.salvarUsuario(nome, matricula, idCategoria, fotoBase64Atual);
+            } else {
+                // UPDATE: Edição de registro existente
+                sucesso = ConexaoSQLite.atualizarUsuario(pessoaSelecionada.getId(), nome, matricula, idCategoria, fotoBase64Atual);
+            }
 
-            if (salvoComSucesso) {
-                mostrarAlerta("Sucesso", "Cadastro Realizado", "Usuário salvo com sucesso!", Alert.AlertType.INFORMATION);
+            if (sucesso) {
+                mostrarAlerta("Sucesso", "Operação Realizada", "Dados salvos com sucesso!", Alert.AlertType.INFORMATION);
                 limparFormulario();
+                painelFormulario.setVisible(false);
                 carregarTabela(); 
             } else {
-                mostrarAlerta("Erro", "Falha ao Salvar", "A matrícula pode já existir no sistema.", Alert.AlertType.ERROR);
+                mostrarAlerta("Erro", "Falha ao Salvar", "Não foi possível salvar as alterações.", Alert.AlertType.ERROR);
             }
         });
 
-// --- LÓGICA DO BOTÃO EXCLUIR ---
+        // --- EXCLUIR CADASTRO ---
         btnExcluir.setOnAction(event -> {
-            Pessoa pessoaSelecionada = tabelaPessoas.getSelectionModel().getSelectedItem();
+            if (pessoaSelecionada == null) return;
 
-            if (pessoaSelecionada == null) {
-                mostrarAlerta("Atenção", "Nenhuma Seleção", "Por favor, selecione uma pessoa na tabela para excluir.", Alert.AlertType.WARNING);
-                return;
-            }
-
-            // Pop-up de confirmação de segurança
             Alert confirmacao = new Alert(Alert.AlertType.CONFIRMATION);
             confirmacao.setTitle("Confirmar Exclusão");
             confirmacao.setHeaderText("Excluir Usuário");
-            confirmacao.setContentText("Tem certeza que deseja excluir " + pessoaSelecionada.getNome() + "? Esta ação não pode ser desfeita.");
+            confirmacao.setContentText("Deseja realmente excluir " + pessoaSelecionada.getNome() + "?");
 
-            // Se o usuário clicar em OK
             confirmacao.showAndWait().ifPresent(resposta -> {
                 if (resposta == javafx.scene.control.ButtonType.OK) {
-                    
-                    // 1. Exclui do SQLite local
-                    boolean excluido = ConexaoSQLite.excluirUsuario(pessoaSelecionada.getId());
-
-                    if (excluido) {
-                        // TODO: Quando o iDFace estiver conectado, chamaremos aqui:
-                        // ControlIdService.excluirUsuario(ipEquipamento, token, idUsuarioAparelho);
-
-                        mostrarAlerta("Sucesso", "Usuário Removido", "O registro foi excluído com sucesso.", Alert.AlertType.INFORMATION);
+                    if (ConexaoSQLite.excluirUsuario(pessoaSelecionada.getId())) {
+                        mostrarAlerta("Sucesso", "Usuário Removido", "Registro excluído com sucesso.", Alert.AlertType.INFORMATION);
                         limparFormulario();
-                        carregarTabela(); // Atualiza a lista na hora!
-                    } else {
-                        mostrarAlerta("Erro", "Falha na Exclusão", "Não foi possível remover o registro do banco de dados.", Alert.AlertType.ERROR);
+                        painelFormulario.setVisible(false);
+                        carregarTabela();
                     }
                 }
             });
         });
-
     }
 
     private void configurarSelecaoTabela() {
         tabelaPessoas.getSelectionModel().selectedItemProperty().addListener((obs, antigo, selecionado) -> {
+            pessoaSelecionada = selecionado;
+
             if (selecionado != null) {
-                // Preenche os campos de texto
+                painelFormulario.setVisible(true); // Exibe o formulário ao selecionar
+                
                 campoNome.setText(selecionado.getNome());
                 campoMatricula.setText(selecionado.getMatricula());
-                
-                // Seleciona a categoria correta no ComboBox
+
                 for (String cat : comboCategoria.getItems()) {
                     if (cat.startsWith(selecionado.getCategoriaId() + " -")) {
                         comboCategoria.setValue(cat);
@@ -186,15 +178,12 @@ public class PessoaController {
                     }
                 }
 
-                // Carrega a foto convertendo o Base64 de volta para Imagem
                 fotoBase64Atual = selecionado.getFotoBase64();
                 if (fotoBase64Atual != null && !fotoBase64Atual.isEmpty()) {
                     try {
                         byte[] bytesImagem = Base64.getDecoder().decode(fotoBase64Atual);
-                        Image img = new Image(new ByteArrayInputStream(bytesImagem));
-                        fotoPerfil.setImage(img);
+                        fotoPerfil.setImage(new Image(new ByteArrayInputStream(bytesImagem)));
                     } catch (Exception e) {
-                        System.out.println("Erro ao decodificar imagem da matrícula " + selecionado.getMatricula());
                         fotoPerfil.setImage(null);
                     }
                 } else {
@@ -208,6 +197,7 @@ public class PessoaController {
         campoNome.clear();
         campoMatricula.clear();
         fotoBase64Atual = null;
+        pessoaSelecionada = null;
         
         if (comboCategoria != null) {
             comboCategoria.getSelectionModel().clearSelection();
