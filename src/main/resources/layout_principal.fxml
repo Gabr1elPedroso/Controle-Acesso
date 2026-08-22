@@ -1,24 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-import javafx.geometry.Insets?>
-import javafx.scene.control.Button?>
-import javafx.scene.control.ComboBox?>
-import javafx.scene.control.Label?>
-import javafx.scene.control.TableColumn?>
-import javafx.scene.control.TableView?>
-import javafx.scene.control.TextField?>
-import javafx.scene.image.ImageView?>
-import javafx.scene.layout.BorderPane?>
-import javafx.scene.layout.HBox?>
-import javafx.scene.layout.VBox?>
-import javafx.scene.text.Font?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
 
 <!-- O fx:controller aponta para a classe Java que vai controlar esta tela -->
-<BorderPane prefHeight="768.0" prefWidth="1024.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.gap.controller.PessoaController">
-   
-   <!-- Lado Esquerdo: Lista de Pessoas -->
+<BorderPane prefHeight="768.0" prefWidth="1024.0"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.gap.controller.PessoaController">
+
    <left>
-      <VBox prefWidth="400.0" spacing="10.0" style="-fx-background-color: #f4f4f4; -fx-border-color: #cccccc; -fx-border-width: 0 1 0 0;" BorderPane.alignment="CENTER">
+      <VBox prefWidth="400.0" spacing="10.0"
+            style="-fx-background-color: #f4f4f4; -fx-border-color: #cccccc; -fx-border-width: 0 1 0 0;"
+            BorderPane.alignment="CENTER">
          <padding>
             <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
          </padding>
@@ -32,16 +36,15 @@ import javafx.scene.text.Font?>
             <Button text="Buscar" />
          </HBox>
          <TableView fx:id="tabelaPessoas" VBox.vgrow="ALWAYS">
-           <columns>
-             <TableColumn fx:id="colunaNome" prefWidth="250.0" text="Nome" />
-             <TableColumn fx:id="colunaMatricula" minWidth="0.0" prefWidth="118.0" text="Matrícula" />
-           </columns>
+            <columns>
+               <TableColumn fx:id="colunaNome" prefWidth="250.0" text="Nome" />
+               <TableColumn fx:id="colunaMatricula" minWidth="0.0" prefWidth="118.0" text="Matrícula" />
+            </columns>
          </TableView>
          <Button fx:id="btnNovo" maxWidth="Infinity" text="+ Novo Usuário" />
       </VBox>
    </left>
 
-   <!-- Lado Direito: Formulário de Cadastro/Edição -->
    <center>
       <VBox spacing="15.0" BorderPane.alignment="CENTER">
          <padding>
@@ -52,42 +55,54 @@ import javafx.scene.text.Font?>
                <Font name="System Bold" size="22.0" />
             </font>
          </Label>
-         
+
          <HBox spacing="20.0">
-            <!-- Área da Foto -->
-            <VBox alignment="CENTER" spacing="10.0" style="-fx-border-color: #cccccc; -fx-padding: 10;">
-               <ImageView fx:id="fotoPerfil" fitHeight="150.0" fitWidth="150.0" pickOnBounds="true" preserveRatio="true" />
+            <VBox alignment="CENTER" spacing="10.0"
+                  style="-fx-border-color: #cccccc; -fx-padding: 10;">
+               <ImageView fx:id="fotoPerfil"
+                          fitHeight="150.0"
+                          fitWidth="150.0"
+                          pickOnBounds="true"
+                          preserveRatio="true" />
                <Button fx:id="btnEscolherFoto" text="Escolher Foto" />
             </VBox>
-            
-            <!-- Campos de Texto -->
+
             <VBox spacing="10.0" HBox.hgrow="ALWAYS">
                <Label text="Nome Completo:" />
                <TextField fx:id="campoNome" />
-               
+
                <Label text="Matrícula (ID Único):" />
                <TextField fx:id="campoMatricula" />
-               
+
                <Label text="Categoria (Perfil):" />
-               <ComboBox fx:id="comboCategoria" maxWidth="Infinity" promptText="Selecione..." />
+               <ComboBox fx:id="comboCategoria"
+                         maxWidth="Infinity"
+                         promptText="Selecione..." />
             </VBox>
          </HBox>
-         
-         <!-- Área de Permissões (Futuro) -->
+
          <Label text="Permissões de Acesso (Leitores):">
             <font>
                <Font name="System Bold" size="14.0" />
             </font>
          </Label>
-         <VBox fx:id="listaEquipamentos" spacing="5.0" style="-fx-background-color: #f9f9f9; -fx-padding: 10; -fx-border-color: #eeeeee;" VBox.vgrow="ALWAYS">
+
+         <VBox fx:id="listaEquipamentos"
+               spacing="5.0"
+               style="-fx-background-color: #f9f9f9; -fx-padding: 10; -fx-border-color: #eeeeee;"
+               VBox.vgrow="ALWAYS">
             <Label text="As portas aparecerão aqui..." textFill="#777777" />
          </VBox>
-         
-         <!-- Botões de Ação -->
+
          <HBox alignment="CENTER_RIGHT" spacing="15.0">
-            <Button fx:id="btnExcluir" style="-fx-background-color: #ff4444; -fx-text-fill: white;" text="Excluir Usuário" />
-            <Button fx:id="btnSalvar" style="-fx-background-color: #4CAF50; -fx-text-fill: white;" text="Salvar Cadastro" />
+            <Button fx:id="btnExcluir"
+                    style="-fx-background-color: #ff4444; -fx-text-fill: white;"
+                    text="Excluir Usuário" />
+            <Button fx:id="btnSalvar"
+                    style="-fx-background-color: #4CAF50; -fx-text-fill: white;"
+                    text="Salvar Cadastro" />
          </HBox>
       </VBox>
    </center>
+
 </BorderPane>
