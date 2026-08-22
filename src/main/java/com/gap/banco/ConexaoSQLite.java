@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -121,6 +122,24 @@ public class ConexaoSQLite {
 
         } catch (IOException e) {
             System.out.println("Erro ao realizar backup do banco: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public static boolean salvarUsuario(String nome, String matricula, int idCategoria, String fotoBase64){
+        String sql = "INSERT INTO usuarios (nome, matricula, categora_id, foto_base64) VALUES (?, ?, ?, ?)";
+
+        try (Connection conn = conectar();
+        PreparedStatement pstmt = conn.prepareStatement(sql)){
+            pstmt.setString(1, nome);
+            pstmt.setString(2, matricula);
+            pstmt.setInt(3, idCategoria);
+            pstmt.setString(4, fotoBase64);
+
+            pstmt.executeUpdate();
+            return true;
+        } catch (Exception e){
+            System.out.println("Erro ao salvar usuário: " + e.getMessage());
             return false;
         }
     }
