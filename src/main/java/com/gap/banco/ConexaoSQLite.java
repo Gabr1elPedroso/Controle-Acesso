@@ -7,9 +7,14 @@ import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+
+import com.gap.model.Equipamento;
 
 public class ConexaoSQLite {
 
@@ -247,6 +252,73 @@ public class ConexaoSQLite {
             
         } catch (Exception e) {
             System.out.println("Erro ao atualizar usuário: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ==========================================
+    // CRUD DE EQUIPAMENTOS (iDFace)
+    // ==========================================
+
+    public static boolean salvarEquipamento(String nome, String ip, String usuario, String senha) {
+        String sql = "INSERT INTO equipamentos (nome, ip, usuario, senha, status) VALUES (?, ?, ?, ?, 'Desconhecido')";
+        try (Connection conn = conectar(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, nome);
+            pstmt.setString(2, ip);
+            pstmt.setString(3, usuario);
+            pstmt.setString(4, senha);
+            return pstmt.executeUpdate() > 0;
+        } catch (Exception e) {
+            System.out.println("Erro ao salvar equipamento: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public static List<Equipamento> listarEquipamentos() {
+        List<Equipamento> lista = new ArrayList<>();
+        String sql = "SELECT * FROM equipamentos";
+        try (Connection conn = conectar(); 
+             Statement stmt = conn.createStatement(); 
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            while (rs.next()) {
+                lista.add(new Equipamento(
+                        rs.getInt("id"),
+                        rs.getString("nome"),
+                        rs.getString("ip"),
+                        rs.getString("usuario"),
+                        rs.getString("senha"),
+                        rs.getString("status")
+                ));
+            }
+        } catch (Exception e) {
+            System.out.println("Erro ao listar equipamentos: " + e.getMessage());
+        }
+        return lista;
+    }
+
+    public static boolean atualizarEquipamento(int id, String nome, String ip, String usuario, String senha) {
+        String sql = "UPDATE equipamentos SET nome = ?, ip = ?, usuario = ?, senha = ? WHERE id = ?";
+        try (Connection conn = conectar(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, nome);
+            pstmt.setString(2, ip);
+            pstmt.setString(3, usuario);
+            pstmt.setString(4, senha);
+            pstmt.setInt(5, id);
+            return pstmt.executeUpdate() > 0;
+        } catch (Exception e) {
+            System.out.println("Erro ao atualizar equipamento: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public static boolean excluirEquipamento(int id) {
+        String sql = "DELETE FROM equipamentos WHERE id = ?";
+        try (Connection conn = conectar(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            return pstmt.executeUpdate() > 0;
+        } catch (Exception e) {
+            System.out.println("Erro ao excluir equipamento: " + e.getMessage());
             return false;
         }
     }
