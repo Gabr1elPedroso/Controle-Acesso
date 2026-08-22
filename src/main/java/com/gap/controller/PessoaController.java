@@ -53,6 +53,7 @@ public class PessoaController {
 
     @FXML
     public void initialize() {
+        painelFormulario.managedProperty().bind(painelFormulario.visibleProperty());
         colunaNome.setCellValueFactory(new PropertyValueFactory<>("nome"));
         colunaMatricula.setCellValueFactory(new PropertyValueFactory<>("matricula"));
 

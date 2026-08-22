@@ -17,7 +17,7 @@
 <BorderPane prefHeight="700.0" prefWidth="900.0" style="-fx-background-color: #F8FAFC;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://fxml.org/javafx/1" fx:controller="com.gap.controller.PessoaController">
    
    <!-- Lado Esquerdo: Tabela de Pessoas e Busca -->
-   <left>
+   <center>
       <VBox prefWidth="380.0" spacing="15.0" style="-fx-background-color: #FFFFFF; -fx-border-color: #E2E8F0; -fx-border-width: 0 1 0 0;" BorderPane.alignment="CENTER">
          <padding>
             <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
@@ -49,10 +49,10 @@
             </columnResizePolicy>
          </TableView>
       </VBox>
-   </left>
+   </center>
    
    <!-- Lado Direito: Formulário de Cadastro/Edição -->
-   <center>
+   <right>
       <VBox fx:id="painelFormulario" spacing="15.0" BorderPane.alignment="CENTER">
          <padding>
             <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
@@ -144,6 +144,6 @@
          </HBox>
          
       </VBox>
-   </center>
+   </right>
    
 </BorderPane>
