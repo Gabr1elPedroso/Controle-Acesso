@@ -208,4 +208,24 @@ public class ConexaoSQLite {
         }
     }
 
+    /**
+     * Verifica se o login e senha do administrador estão corretos
+     */
+    public static boolean autenticarSistema(String login, String senha) {
+        String sql = "SELECT id FROM usuarios_sistema WHERE login = ? AND senha = ?";
+        try (Connection conn = conectar();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, login);
+            pstmt.setString(2, senha);
+            
+            // Se retornar algum resultado, a senha está correta
+            return pstmt.executeQuery().next();
+            
+        } catch (Exception e) {
+            System.out.println("Erro ao autenticar: " + e.getMessage());
+            return false;
+        }
+    }
+
 }
