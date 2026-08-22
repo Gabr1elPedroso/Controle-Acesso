@@ -13,7 +13,7 @@
       <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
    </padding>
    
-   <Label text="EcoTech - Acesso" textFill="#2E7D32">
+   <Label text="GAP - Acesso" textFill="#e40d0d">
       <font>
          <Font name="System Bold" size="24.0" />
       </font>
