@@ -1,9 +1,11 @@
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\App.java
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\banco\ConexaoSQLite.java
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\controller\DashboardController.java
+C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\controller\EquipamentoController.java
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\controller\LoginController.java
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\controller\PessoaController.java
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\Main.java
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\MainApp.java
+C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\model\Equipamento.java
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\model\Pessoa.java
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\service\ControlIdService.java
