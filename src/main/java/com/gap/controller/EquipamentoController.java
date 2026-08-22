@@ -127,6 +127,7 @@ public class EquipamentoController {
                 painelFormularioEquip.setVisible(true);
                 campoNomeEquip.setText(selecionado.getNome());
                 campoIp.setText(selecionado.getIp());
+                campoPorta.setText(String.valueOf(selecionado.getporta()));
                 campoUsuario.setText(selecionado.getUsuario());
                 campoSenha.setText(selecionado.getSenha());
             }
@@ -136,6 +137,7 @@ public class EquipamentoController {
     private void limparFormulario() {
         campoNomeEquip.clear();
         campoIp.clear();
+        campoPorta.clear();
         campoUsuario.setText("admin");
         campoSenha.setText("admin");
     }
