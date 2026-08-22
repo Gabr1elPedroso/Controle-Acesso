@@ -28,6 +28,7 @@ public class EquipamentoController {
     @FXML private TextField campoIp;
     @FXML private TextField campoUsuario;
     @FXML private PasswordField campoSenha;
+    @FXML private TextField campoPorta;
     
     @FXML private Button btnExcluirEquip;
     @FXML private Button btnSalvarEquip;
