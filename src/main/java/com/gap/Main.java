@@ -1,50 +1,20 @@
 package com.gap;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Base64;
-
 import com.gap.banco.ConexaoSQLite;
-import com.gap.service.ControlIdService;
 
 public class Main {
-
     public static void main(String[] args) {
-        System.out.println("Sistema de Controle de Acesso");
+        System.out.println("Iniciando Sistema de Controle de Acesso...");
 
-        ConexaoSQLite.criarTabela();
+        // 1. Cria/Carrega todas as tabelas (Categorias, Equipamentos, Usuários, Permissões)
+        ConexaoSQLite.criarTabelas();
 
-        ControlIdService api = new ControlIdService();
+        // 2. Teste da função de Backup (cria uma pasta 'backups' dentro do seu projeto)
+        System.out.println("Executando rotina de backup...");
+        boolean sucessoBackup = ConexaoSQLite.realizarBackup("backups");
 
-        try {
-
-            boolean logado = api.fazerLogin("admin", "admin");
-
-            if (logado) {
-                String nomeFuncionario = "Gabriel Pedroso";
-                String matricula = "2026";
-
-                long idGerado = api.criarUsuario(nomeFuncionario, matricula);
-
-                ConexaoSQLite.salvarUsuarioLocal(nomeFuncionario, matricula, idGerado);
-
-                Path caminhoFoto = Path.of("C:\\Users\\HP\\Downloads\\gabriel_pedroso.jpg");
-
-                if (Files.exists(caminhoFoto)) {
-                    byte[] bytesDaFoto = Files.readAllBytes(caminhoFoto);
-                    String fotoBase64 = Base64.getEncoder().encodeToString(bytesDaFoto);
-
-                    api.enviarFoto(idGerado, fotoBase64);
-                    System.out.println("Cadastro Finalizado com sucesso!");
-                } else {
-                    System.out.println("Arquivo de foto não encontrado: " + caminhoFoto.toString());
-                }
-
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-
+        if (sucessoBackup) {
+            System.out.println("Rotina de validação concluída sem erros!");
         }
     }
 }
