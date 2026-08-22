@@ -8,6 +8,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
+import com.gap.banco.ConexaoSQLite;
 
 public class PessoaController {
     
@@ -41,6 +42,25 @@ public class PessoaController {
             System.out.println("Preparando formulario para novo usuario");
 
         });
+
+        btnSalvar.setOnAction(event -> {
+            String nome = campoNome.getText().trim();
+            String matricula = campoMatricula.getText().trim();
+
+            if (nome.isEmpty() || matricula.isEmpty()) {
+                System.out.println("AVISO: Nome e Matricula são obrigatorios!");
+                return;
+            }
+
+            boolean salvoComSucesso = com.gap.banco.ConexaoSQLite.salvarUsuario(nome, matricula, 1, null); // 1 é o ID da categoria padrão
+
+            if (salvoComSucesso){
+                System.out.println("SUCESSO: O Usuario" + nome + " foi salvo com sucesso!");
+
+                TODO:
+                limparFormulario();
+            }
+        })
 
         btnEscolherFoto.setOnAction(event -> {
             System.out.println("Abrindo Janela para escolher foto");
