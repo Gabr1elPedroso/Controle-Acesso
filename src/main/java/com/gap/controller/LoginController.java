@@ -46,7 +46,7 @@ public class LoginController {
             Stage janela = (Stage) btnLogin.getScene().getWindow();
             
             // Carrega a tela do sistema (por enquanto nossa tela de pessoas)
-            Parent layoutPrincipal = FXMLLoader.load(getClass().getResource("/layout_principal.fxml"));
+            Parent layoutPrincipal = FXMLLoader.load(getClass().getResource("/dashboard.fxml"));
             
             // Troca a cena atual pela nova tela do sistema e ajusta o tamanho
             janela.setScene(new Scene(layoutPrincipal, 1024, 768));
