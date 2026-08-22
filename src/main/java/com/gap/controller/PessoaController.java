@@ -1,5 +1,10 @@
 package com.gap.controller;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.nio.file.Files;
+import java.util.Base64;
+
 import com.gap.banco.ConexaoSQLite;
 import com.gap.model.Pessoa;
 
@@ -13,8 +18,11 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 
 public class PessoaController {
 
@@ -37,17 +45,25 @@ public class PessoaController {
     @FXML private Button btnSalvar;
 
     private ObservableList<Pessoa> listaPessoas = FXCollections.observableArrayList();
+    
+    // Variável para guardar a foto atual em formato Base64
+    private String fotoBase64Atual = null;
 
     @FXML
     public void initialize() {
-        // Configura as colunas para lerem as propriedades 'nome' e 'matricula' da classe Pessoa
+        // Configura as colunas
         colunaNome.setCellValueFactory(new PropertyValueFactory<>("nome"));
         colunaMatricula.setCellValueFactory(new PropertyValueFactory<>("matricula"));
 
-        // Carrega os dados na tabela
-        carregarTabela();
+        // Popula as opções de Categoria no ComboBox
+        comboCategoria.setItems(FXCollections.observableArrayList(
+            "1 - Funcionário",
+            "2 - Visitante",
+            "3 - Terceirizado",
+            "4 - Diretoria"
+        ));
 
-        // Configura ações de clique nos botões e na tabela
+        carregarTabela();
         configurarBotoes();
         configurarSelecaoTabela();
     }
@@ -64,37 +80,89 @@ public class PessoaController {
             tabelaPessoas.getSelectionModel().clearSelection();
         });
 
-        btnSalvar.setOnAction(event -> {
-            String nome = campoNome.getText().trim();
-            String matricula = campoMatricula.getText().trim();
+        // --- SELEÇÃO DE FOTO ---
+        btnEscolherFoto.setOnAction(event -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Selecione a Foto do Usuário");
+            fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Imagens (JPG, PNG)", "*.jpg", "*.jpeg", "*.png")
+            );
 
-            if (nome.isEmpty() || matricula.isEmpty()) {
-                mostrarAlerta("Atenção", "Preenchimento Obrigatório", "Por favor, preencha o Nome e a Matrícula.", Alert.AlertType.WARNING);
-                return;
-            }
+            // Obtém a janela atual para abrir o explorador de arquivos nela
+            Stage janelaAtual = (Stage) btnEscolherFoto.getScene().getWindow();
+            File arquivoSelecionado = fileChooser.showOpenDialog(janelaAtual);
 
-            boolean salvoComSucesso = ConexaoSQLite.salvarUsuario(nome, matricula, 1, null);
+            if (arquivoSelecionado != null) {
+                try {
+                    // 1. Converte o arquivo para Base64 (Para o SQLite e Control iD)
+                    byte[] bytesArquivo = Files.readAllBytes(arquivoSelecionado.toPath());
+                    fotoBase64Atual = Base64.getEncoder().encodeToString(bytesArquivo);
 
-            if (salvoComSucesso) {
-                mostrarAlerta("Sucesso", "Cadastro Realizado", "O usuário " + nome + " foi salvo com sucesso!", Alert.AlertType.INFORMATION);
-                limparFormulario();
-                carregarTabela(); // Atualiza a tabela na hora!
-            } else {
-                mostrarAlerta("Erro", "Falha ao Salvar", "Verifique se a matrícula já está cadastrada.", Alert.AlertType.ERROR);
+                    // 2. Exibe a imagem na tela usando o arquivo local
+                    Image imagemCarregada = new Image(arquivoSelecionado.toURI().toString());
+                    fotoPerfil.setImage(imagemCarregada);
+                    
+                } catch (Exception e) {
+                    mostrarAlerta("Erro", "Falha na Imagem", "Não foi possível carregar a imagem selecionada.", Alert.AlertType.ERROR);
+                }
             }
         });
 
-        btnEscolherFoto.setOnAction(event -> {
-            mostrarAlerta("Em breve", "Funcionalidade", "A seleção de fotos será configurada a seguir!", Alert.AlertType.INFORMATION);
+        // --- SALVAR CADASTRO ---
+        btnSalvar.setOnAction(event -> {
+            String nome = campoNome.getText().trim();
+            String matricula = campoMatricula.getText().trim();
+            String catSelecionada = comboCategoria.getValue();
+
+            if (nome.isEmpty() || matricula.isEmpty() || catSelecionada == null) {
+                mostrarAlerta("Atenção", "Preenchimento Obrigatório", "Preencha Nome, Matrícula e selecione uma Categoria.", Alert.AlertType.WARNING);
+                return;
+            }
+
+            // Extrai o número do ID da categoria selecionada (Ex: "1 - Funcionário" vira 1)
+            int idCategoria = Integer.parseInt(catSelecionada.split(" - ")[0]);
+
+            boolean salvoComSucesso = ConexaoSQLite.salvarUsuario(nome, matricula, idCategoria, fotoBase64Atual);
+
+            if (salvoComSucesso) {
+                mostrarAlerta("Sucesso", "Cadastro Realizado", "Usuário salvo com sucesso!", Alert.AlertType.INFORMATION);
+                limparFormulario();
+                carregarTabela(); 
+            } else {
+                mostrarAlerta("Erro", "Falha ao Salvar", "A matrícula pode já existir no sistema.", Alert.AlertType.ERROR);
+            }
         });
     }
 
     private void configurarSelecaoTabela() {
-        // Preenche o formulário automaticamente ao clicar em uma pessoa da tabela
         tabelaPessoas.getSelectionModel().selectedItemProperty().addListener((obs, antigo, selecionado) -> {
             if (selecionado != null) {
+                // Preenche os campos de texto
                 campoNome.setText(selecionado.getNome());
                 campoMatricula.setText(selecionado.getMatricula());
+                
+                // Seleciona a categoria correta no ComboBox
+                for (String cat : comboCategoria.getItems()) {
+                    if (cat.startsWith(selecionado.getCategoriaId() + " -")) {
+                        comboCategoria.setValue(cat);
+                        break;
+                    }
+                }
+
+                // Carrega a foto convertendo o Base64 de volta para Imagem
+                fotoBase64Atual = selecionado.getFotoBase64();
+                if (fotoBase64Atual != null && !fotoBase64Atual.isEmpty()) {
+                    try {
+                        byte[] bytesImagem = Base64.getDecoder().decode(fotoBase64Atual);
+                        Image img = new Image(new ByteArrayInputStream(bytesImagem));
+                        fotoPerfil.setImage(img);
+                    } catch (Exception e) {
+                        System.out.println("Erro ao decodificar imagem da matrícula " + selecionado.getMatricula());
+                        fotoPerfil.setImage(null);
+                    }
+                } else {
+                    fotoPerfil.setImage(null);
+                }
             }
         });
     }
@@ -102,7 +170,9 @@ public class PessoaController {
     private void limparFormulario() {
         campoNome.clear();
         campoMatricula.clear();
-        if (comboCategoria != null && comboCategoria.getSelectionModel() != null) {
+        fotoBase64Atual = null;
+        
+        if (comboCategoria != null) {
             comboCategoria.getSelectionModel().clearSelection();
         }
         if (fotoPerfil != null) {
