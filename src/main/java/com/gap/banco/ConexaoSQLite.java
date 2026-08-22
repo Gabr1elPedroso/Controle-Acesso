@@ -127,7 +127,7 @@ public class ConexaoSQLite {
     }
 
     public static boolean salvarUsuario(String nome, String matricula, int idCategoria, String fotoBase64){
-        String sql = "INSERT INTO usuarios (nome, matricula, categora_id, foto_base64) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO usuarios (nome, matricula, categoria_id, foto_base64) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = conectar();
         PreparedStatement pstmt = conn.prepareStatement(sql)){
