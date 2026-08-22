@@ -13,7 +13,7 @@ public class MainApp extends Application {
     @Override
     public void start(Stage palcoPrincipal) throws Exception {
         // Busca o arquivo FXML na pasta resources
-        URL arquivoFXML = getClass().getResource("/layout_principal.fxml");
+        URL arquivoFXML = getClass().getResource("/login.fxml");
         
         if (arquivoFXML == null) {
             System.out.println("Erro: Arquivo layout_principal.fxml não encontrado!");
@@ -23,10 +23,11 @@ public class MainApp extends Application {
         Parent layout = FXMLLoader.load(arquivoFXML);
         
         // Define a cena inicial
-        Scene cena = new Scene(layout, 1024, 768); // Resolução padrão de sistemas
+        Scene cena = new Scene(layout, 400, 400); // Resolução padrão de sistemas
         
-        palcoPrincipal.setTitle("Controle de Acesso");
+        palcoPrincipal.setTitle("GAP - Controle de Acesso");
         palcoPrincipal.setScene(cena);
+        palcoPrincipal.setResizable(false);
         palcoPrincipal.show();
     }
 
