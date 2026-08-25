@@ -24,15 +24,16 @@ public class ConexaoSQLite {
     // ==========================================================
     // CONEXÃO
     // ==========================================================
-
-    public static Connection conectar() {
+public static Connection conectar() {
         try {
-            return DriverManager.getConnection(URL);
+            java.util.Properties config = com.gap.config.GerenciadorConfiguracao.carregarConfiguracoes();
+            String caminhoBanco = config.getProperty("banco.caminho", "gap.db");
+            
+            String url = "jdbc:sqlite:" + caminhoBanco;
+            return DriverManager.getConnection(url);
 
         } catch (Exception e) {
-            System.out.println(
-                "Erro ao conectar no banco de dados: " + e.getMessage()
-            );
+            System.out.println("Erro ao conectar no banco de dados: " + e.getMessage());
             return null;
         }
     }
