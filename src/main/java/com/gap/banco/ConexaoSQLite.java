@@ -14,7 +14,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.mindrot.jbcrypt.BCrypt;
+
 import com.gap.model.Equipamento;
+import com.gap.model.Operador;
 
 public class ConexaoSQLite {
 
@@ -117,6 +120,11 @@ public static Connection conectar() {
 
             stmt.execute(sqlAdmins);
 
+            // Bancos criados antes de existirem as colunas nome/nivel
+            // precisam de ALTER TABLE — CREATE TABLE IF NOT EXISTS não
+            // altera uma tabela que já existe.
+            migrarColunasUsuarioSistema(conn);
+
             // --------------------------------------------------
             // Usuário administrador padrão
             // --------------------------------------------------
@@ -130,8 +138,8 @@ public static Connection conectar() {
 
                 stmt.execute(
                     "INSERT INTO usuarios_sistema "
-                    + "(login, senha) "
-                    + "VALUES ('Gap', '2215')"
+                    + "(login, senha, nome, nivel) "
+                    + "VALUES ('Gap', '2215', 'Administrador Padrão', 'Administrador')"
                 );
 
                 System.out.println(
@@ -185,6 +193,37 @@ public static Connection conectar() {
             );
 
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Adiciona as colunas nome/nivel em bases já existentes (criadas antes
+     * dessas colunas existirem). CREATE TABLE IF NOT EXISTS não altera uma
+     * tabela que já existe, então isso precisa ser feito à parte.
+     */
+    private static void migrarColunasUsuarioSistema(Connection conn) throws Exception {
+
+        java.util.Set<String> colunas = new java.util.HashSet<>();
+
+        try (
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("PRAGMA table_info(usuarios_sistema)")
+        ) {
+            while (rs.next()) {
+                colunas.add(rs.getString("name"));
+            }
+        }
+
+        try (Statement stmt = conn.createStatement()) {
+            if (!colunas.contains("nome")) {
+                stmt.execute("ALTER TABLE usuarios_sistema ADD COLUMN nome TEXT");
+            }
+            if (!colunas.contains("nivel")) {
+                stmt.execute(
+                    "ALTER TABLE usuarios_sistema "
+                    + "ADD COLUMN nivel TEXT NOT NULL DEFAULT 'Administrador'"
+                );
+            }
         }
     }
 
@@ -362,8 +401,8 @@ public static Connection conectar() {
             String senha) {
 
         String sql =
-                "SELECT id FROM usuarios_sistema "
-                + "WHERE login = ? AND senha = ?";
+                "SELECT id, senha FROM usuarios_sistema "
+                + "WHERE login = ?";
 
         try (
             Connection conn = conectar();
@@ -371,9 +410,34 @@ public static Connection conectar() {
         ) {
 
             pstmt.setString(1, login);
-            pstmt.setString(2, senha);
 
-            return pstmt.executeQuery().next();
+            ResultSet rs = pstmt.executeQuery();
+
+            if (!rs.next()) {
+                return false;
+            }
+
+            int id = rs.getInt("id");
+            String senhaArmazenada = rs.getString("senha");
+
+            if (senhaArmazenada == null) {
+                return false;
+            }
+
+            // Hash BCrypt (formato começa com $2a$, $2b$ ou $2y$)
+            if (senhaArmazenada.startsWith("$2")) {
+                return BCrypt.checkpw(senha, senhaArmazenada);
+            }
+
+            // Compatibilidade: senha antiga em texto puro (ex.: admin
+            // padrão 'Gap'/'2215'). Se bater, migra pra hash na hora,
+            // sem exigir nenhuma ação manual.
+            if (senhaArmazenada.equals(senha)) {
+                atualizarSenhaOperador(id, senha);
+                return true;
+            }
+
+            return false;
 
         } catch (Exception e) {
 
@@ -381,6 +445,130 @@ public static Connection conectar() {
                 "Erro ao autenticar: " + e.getMessage()
             );
 
+            return false;
+        }
+    }
+
+    // ==========================================================
+    // OPERADORES (USUÁRIOS DO SISTEMA)
+    // ==========================================================
+
+    public static boolean criarOperador(
+            String nome,
+            String login,
+            String senhaPlana) {
+
+        String sql =
+                "INSERT INTO usuarios_sistema "
+                + "(nome, login, senha, nivel) "
+                + "VALUES (?, ?, ?, 'Administrador')";
+
+        try (
+            Connection conn = conectar();
+            PreparedStatement pstmt = conn.prepareStatement(sql)
+        ) {
+
+            String senhaHash = BCrypt.hashpw(senhaPlana, BCrypt.gensalt());
+
+            pstmt.setString(1, nome);
+            pstmt.setString(2, login);
+            pstmt.setString(3, senhaHash);
+
+            return pstmt.executeUpdate() > 0;
+
+        } catch (Exception e) {
+
+            // Cai aqui, por exemplo, quando o login já existe
+            // (constraint UNIQUE).
+            System.out.println(
+                "Erro ao criar operador: " + e.getMessage()
+            );
+
+            return false;
+        }
+    }
+
+    public static List<Operador> listarOperadores() {
+
+        List<Operador> lista = new ArrayList<>();
+
+        String sql =
+                "SELECT id, nome, login, nivel "
+                + "FROM usuarios_sistema ORDER BY nome";
+
+        try (
+            Connection conn = conectar();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql)
+        ) {
+
+            while (rs.next()) {
+                lista.add(new Operador(
+                    rs.getInt("id"),
+                    rs.getString("nome"),
+                    rs.getString("login"),
+                    rs.getString("nivel")
+                ));
+            }
+
+        } catch (Exception e) {
+
+            System.out.println(
+                "Erro ao listar operadores: " + e.getMessage()
+            );
+
+            e.printStackTrace();
+        }
+
+        return lista;
+    }
+
+    public static boolean atualizarSenhaOperador(
+            int id,
+            String novaSenhaPlana) {
+
+        String sql =
+                "UPDATE usuarios_sistema SET senha = ? WHERE id = ?";
+
+        try (
+            Connection conn = conectar();
+            PreparedStatement pstmt = conn.prepareStatement(sql)
+        ) {
+
+            pstmt.setString(1, BCrypt.hashpw(novaSenhaPlana, BCrypt.gensalt()));
+            pstmt.setInt(2, id);
+
+            return pstmt.executeUpdate() > 0;
+
+        } catch (Exception e) {
+
+            System.out.println(
+                "Erro ao atualizar senha do operador: " + e.getMessage()
+            );
+
+            return false;
+        }
+    }
+
+    public static boolean testarConexao(String caminho) {
+
+        File arquivo = new File(caminho);
+
+        if (!arquivo.exists()) {
+            System.out.println(
+                "Arquivo de banco não encontrado em: " + caminho
+            );
+            return false;
+        }
+
+        String url = "jdbc:sqlite:" + caminho;
+
+        try (Connection conn = DriverManager.getConnection(url)) {
+            return conn != null && !conn.isClosed();
+        } catch (Exception e) {
+            System.out.println(
+                "Erro ao testar conexão: " + e.getMessage()
+            );
             return false;
         }
     }

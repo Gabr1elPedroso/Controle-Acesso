@@ -31,8 +31,7 @@ public class DashboardController {
 
     @FXML
     public void abrirTelaConfiguracoes() {
-        // TODO: Criaremos essa tela depois
-        System.out.println("Abrindo tela de Configurações...");
+        carregarTela("/tela_configuracoes.fxml");
     }
 
     @FXML
