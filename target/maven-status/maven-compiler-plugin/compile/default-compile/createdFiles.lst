@@ -1,0 +1,15 @@
+com\gap\BackupJob.class
+com\gap\Main.class
+com\gap\MainApp.class
+com\gap\service\ControlIdService.class
+com\gap\banco\ConexaoSQLite.class
+com\gap\controller\LoginController.class
+com\gap\App.class
+com\gap\model\Equipamento.class
+com\gap\controller\EquipamentoController.class
+com\gap\controller\PessoaController.class
+com\gap\config\GerenciadorConfiguracao.class
+com\gap\controller\DashboardController.class
+com\gap\model\Operador.class
+com\gap\controller\TelaConfiguracoesController.class
+com\gap\model\Pessoa.class

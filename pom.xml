@@ -53,24 +53,89 @@
 
     <build>
         <plugins>
+            <!-- Roda o app em desenvolvimento: mvn javafx:run -->
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <configuration>
-                    <mainClass>com.gap.MainApp</mainClass>
+                    <mainClass>com.gap.App</mainClass>
                 </configuration>
             </plugin>
+
+            <!-- Compila o jar principal (sem dependências dentro) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.gap.App</mainClass>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>libs/</classpathPrefix>
+                        </manifest>
+                    </archive>
+                    <finalName>controle-acesso</finalName>
+                </configuration>
+            </plugin>
+
+            <!--
+                Copia todas as dependências pra target/libs.
+                O jpackage aponta pra target/ como input e enxerga
+                o jar principal + a subpasta libs/ com as deps.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.6.1</version>
+                <executions>
+                    <execution>
+                        <id>copiar-dependencias</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/libs</outputDirectory>
+                            <includeScope>runtime</includeScope>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                Gera um segundo jar gordo só para o BackupJob (sem JavaFX),
+                usado pelo Agendador de Tarefas. O jar principal do app
+                NÃO é afetado por esse shade.
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.5.1</version>
                 <executions>
                     <execution>
+                        <id>backup-job-fat-jar</id>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <finalName>backup-job</finalName>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.gap.BackupJob</mainClass>
+                                </transformer>
+                            </transformers>
+                            <!-- Exclui os módulos JavaFX do jar de backup,
+                                 pois o BackupJob não usa interface gráfica -->
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>org.openjfx:*</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
