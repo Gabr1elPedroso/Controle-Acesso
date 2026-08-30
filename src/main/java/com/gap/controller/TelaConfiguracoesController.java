@@ -19,6 +19,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.paint.Color;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
@@ -39,6 +40,11 @@ public class TelaConfiguracoesController {
     @FXML private TableColumn<Operador, String> colNome;
     @FXML private TableColumn<Operador, String> colLogin;
     @FXML private TableColumn<Operador, String> colNivel;
+
+    // Aba 3 - Backup
+    @FXML private TextField txtPastaBackup;
+    @FXML private Button btnProcurarPastaBackup;
+    @FXML private Label lblStatusBackup;
 
     private final ObservableList<Operador> listaOperadores = FXCollections.observableArrayList();
 
@@ -61,6 +67,11 @@ public class TelaConfiguracoesController {
         tblOperadores.setItems(listaOperadores);
 
         carregarOperadores();
+
+        // --- Aba 3: carrega a pasta de backup já configurada ---
+        String pastaBackupAtual = GerenciadorConfiguracao.carregarConfiguracoes()
+                .getProperty("backup.pasta", "backups");
+        txtPastaBackup.setText(pastaBackupAtual);
     }
 
     // ==========================================================
@@ -184,6 +195,66 @@ public class TelaConfiguracoesController {
         txtLoginOperador.clear();
         txtSenhaOperador.clear();
         cmbNivelAcesso.getSelectionModel().selectFirst();
+    }
+
+    // ==========================================================
+    // ABA 3 - BACKUP
+    // ==========================================================
+
+    @FXML
+    public void handleProcurarPastaBackup() {
+        DirectoryChooser dirChooser = new DirectoryChooser();
+        dirChooser.setTitle("Selecione a pasta de backup");
+
+        Stage janelaAtual = (Stage) btnProcurarPastaBackup.getScene().getWindow();
+        File pasta = dirChooser.showDialog(janelaAtual);
+
+        if (pasta != null) {
+            txtPastaBackup.setText(pasta.getAbsolutePath());
+        }
+    }
+
+    @FXML
+    public void handleSalvarConfigBackup() {
+        String pasta = txtPastaBackup.getText().trim();
+
+        if (pasta.isEmpty()) {
+            mostrarAlerta(
+                "Atenção", "Pasta obrigatória",
+                "Informe a pasta de backup antes de salvar.",
+                Alert.AlertType.WARNING
+            );
+            return;
+        }
+
+        GerenciadorConfiguracao.salvarPropriedade("backup.pasta", pasta);
+
+        mostrarAlerta(
+            "Sucesso", "Configuração Salva",
+            "A pasta de backup foi atualizada. O backup diário agendado (Task Scheduler) já passa a usar esse caminho.",
+            Alert.AlertType.INFORMATION
+        );
+    }
+
+    @FXML
+    public void handleBackupAgora() {
+        String pasta = txtPastaBackup.getText().trim();
+
+        if (pasta.isEmpty()) {
+            lblStatusBackup.setText("Informe uma pasta antes de fazer o backup.");
+            lblStatusBackup.setTextFill(Color.web("#c62828"));
+            return;
+        }
+
+        boolean ok = ConexaoSQLite.realizarBackup(pasta);
+
+        if (ok) {
+            lblStatusBackup.setText("Backup realizado com sucesso em: " + pasta);
+            lblStatusBackup.setTextFill(Color.web("#2e7d32"));
+        } else {
+            lblStatusBackup.setText("Falha ao realizar o backup. Veja o console para detalhes.");
+            lblStatusBackup.setTextFill(Color.web("#c62828"));
+        }
     }
 
     private void mostrarAlerta(String titulo, String cabecalho, String mensagem, Alert.AlertType tipo) {

@@ -11,7 +11,7 @@ public class Main {
 
         // 2. Teste da função de Backup (cria uma pasta 'backups' dentro do seu projeto)
         System.out.println("Executando rotina de backup...");
-        boolean sucessoBackup = ConexaoSQLite.realizarBackup("backups");
+        boolean sucessoBackup = ConexaoSQLite.realizarBackupConfigurado();
 
         if (sucessoBackup) {
             System.out.println("Rotina de validação concluída sem erros!");

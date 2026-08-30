@@ -1,9 +1,6 @@
 package com.gap.banco;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -233,12 +230,17 @@ public static Connection conectar() {
 
     public static boolean realizarBackup(String pastaDestino) {
 
-        File arquivoOriginal = new File(CAMINHO_BANCO);
+        String caminhoBanco = com.gap.config.GerenciadorConfiguracao
+                .carregarConfiguracoes()
+                .getProperty("banco.caminho", "gap.db");
+
+        File arquivoOriginal = new File(caminhoBanco);
 
         if (!arquivoOriginal.exists()) {
 
             System.out.println(
-                "Arquivo de banco de dados não encontrado para backup."
+                "Arquivo de banco de dados não encontrado para backup: "
+                + caminhoBanco
             );
 
             return false;
@@ -264,27 +266,86 @@ public static Connection conectar() {
             File arquivoBackup =
                     new File(diretorioDestino, nomeArquivoBackup);
 
-            // Copia o banco
-            Files.copy(
-                arquivoOriginal.toPath(),
-                arquivoBackup.toPath(),
-                StandardCopyOption.REPLACE_EXISTING
-            );
+            // VACUUM INTO faz uma cópia consistente pelo próprio SQLite,
+            // diferente de copiar o arquivo bruto (Files.copy) enquanto
+            // o banco pode estar em uso.
+            try (
+                Connection conn = conectar();
+                Statement stmt = conn.createStatement()
+            ) {
+
+                if (conn == null) {
+                    System.out.println(
+                        "Não foi possível conectar ao banco para o backup."
+                    );
+                    return false;
+                }
+
+                String caminhoEscapado =
+                        arquivoBackup.getAbsolutePath().replace("'", "''");
+
+                stmt.execute("VACUUM INTO '" + caminhoEscapado + "'");
+            }
 
             System.out.println(
                 "Backup realizado com sucesso em: "
                 + arquivoBackup.getAbsolutePath()
             );
 
+            limparBackupsAntigos(diretorioDestino, 30);
+
             return true;
 
-        } catch (IOException e) {
+        } catch (Exception e) {
 
             System.out.println(
                 "Erro ao realizar backup do banco: " + e.getMessage()
             );
 
             return false;
+        }
+    }
+
+    /**
+     * Lê a pasta de backup configurada na tela de Configurações e roda o
+     * backup nela. É o método chamado tanto pelo backup automático ao abrir
+     * o app quanto pela rotina headless (BackupJob) agendada no SO.
+     */
+    public static boolean realizarBackupConfigurado() {
+        String pastaDestino = com.gap.config.GerenciadorConfiguracao
+                .carregarConfiguracoes()
+                .getProperty("backup.pasta", "backups");
+
+        return realizarBackup(pastaDestino);
+    }
+
+    /**
+     * Mantém só os N backups mais recentes na pasta, apagando o resto.
+     * Sem isso, os arquivos só se acumulam (o backup diário deixaria
+     * uma cópia nova por dia, pra sempre).
+     */
+    private static void limparBackupsAntigos(File diretorio, int manterUltimos) {
+
+        File[] arquivos = diretorio.listFiles((dir, nome) ->
+                nome.startsWith("backup_gap_") && nome.endsWith(".db"));
+
+        if (arquivos == null || arquivos.length <= manterUltimos) {
+            return;
+        }
+
+        java.util.Arrays.sort(
+            arquivos,
+            java.util.Comparator.comparingLong(File::lastModified)
+        );
+
+        int totalParaRemover = arquivos.length - manterUltimos;
+
+        for (int i = 0; i < totalParaRemover; i++) {
+            if (arquivos[i].delete()) {
+                System.out.println(
+                    "Backup antigo removido: " + arquivos[i].getName()
+                );
+            }
         }
     }
 

@@ -34,7 +34,7 @@ public class MainApp extends Application {
     public static void main(String[] args) {
         // Inicia o banco de dados e backup antes de abrir a tela
         com.gap.banco.ConexaoSQLite.criarTabelas();
-        com.gap.banco.ConexaoSQLite.realizarBackup("backups");
+        com.gap.banco.ConexaoSQLite.realizarBackupConfigurado();
         
         launch(args);
     }
