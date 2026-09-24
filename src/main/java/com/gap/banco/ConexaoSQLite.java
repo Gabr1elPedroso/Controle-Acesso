@@ -121,6 +121,7 @@ public static Connection conectar() {
             // precisam de ALTER TABLE — CREATE TABLE IF NOT EXISTS não
             // altera uma tabela que já existe.
             migrarColunasUsuarioSistema(conn);
+            migrarColunasEquipamentos(conn);
 
             // --------------------------------------------------
             // Usuário administrador padrão
@@ -219,6 +220,52 @@ public static Connection conectar() {
                 stmt.execute(
                     "ALTER TABLE usuarios_sistema "
                     + "ADD COLUMN nivel TEXT NOT NULL DEFAULT 'Administrador'"
+                );
+            }
+        }
+    }
+
+    /**
+     * Adiciona as colunas porta/status/usuario/senha em bases criadas
+     * antes dessas colunas existirem. Mesmo padrão da migração de
+     * usuarios_sistema.
+     */
+    private static void migrarColunasEquipamentos(Connection conn) throws Exception {
+
+        java.util.Set<String> colunas = new java.util.HashSet<>();
+
+        try (
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("PRAGMA table_info(equipamentos)")
+        ) {
+            while (rs.next()) {
+                colunas.add(rs.getString("name"));
+            }
+        }
+
+        try (Statement stmt = conn.createStatement()) {
+            if (!colunas.contains("porta")) {
+                stmt.execute(
+                    "ALTER TABLE equipamentos "
+                    + "ADD COLUMN porta INTEGER NOT NULL DEFAULT 80"
+                );
+            }
+            if (!colunas.contains("status")) {
+                stmt.execute(
+                    "ALTER TABLE equipamentos "
+                    + "ADD COLUMN status TEXT DEFAULT 'Desconhecido'"
+                );
+            }
+            if (!colunas.contains("usuario")) {
+                stmt.execute(
+                    "ALTER TABLE equipamentos "
+                    + "ADD COLUMN usuario TEXT NOT NULL DEFAULT 'admin'"
+                );
+            }
+            if (!colunas.contains("senha")) {
+                stmt.execute(
+                    "ALTER TABLE equipamentos "
+                    + "ADD COLUMN senha TEXT NOT NULL DEFAULT 'admin'"
                 );
             }
         }
@@ -704,10 +751,18 @@ public static Connection conectar() {
 
         } catch (Exception e) {
 
-            System.out.println(
-                "Erro ao salvar equipamento: "
-                + e.getMessage()
-            );
+            String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+
+            if (msg.contains("unique") || msg.contains("unique constraint")) {
+                System.out.println(
+                    "Equipamento duplicado (IP ou Nome já existe): " + e.getMessage()
+                );
+            } else {
+                System.out.println(
+                    "Erro ao salvar equipamento: " + e.getMessage()
+                );
+                e.printStackTrace();
+            }
 
             return false;
         }

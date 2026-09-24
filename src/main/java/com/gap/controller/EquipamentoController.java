@@ -96,7 +96,21 @@ public class EquipamentoController {
                 painelFormularioEquip.setVisible(false);
                 carregarTabela();
             } else {
-                mostrarAlerta("Erro", "Falha ao Salvar", "Verifique se o IP já está cadastrado.", Alert.AlertType.ERROR);
+                // Verifica se já existe equipamento com esse IP ou Nome
+                // para dar uma mensagem mais precisa ao usuário
+                boolean ipDuplicado = ConexaoSQLite.listarEquipamentos().stream()
+                        .anyMatch(e -> e.getIp().equalsIgnoreCase(ip)
+                                && (equipamentoSelecionado == null || e.getId() != equipamentoSelecionado.getId()));
+
+                if (ipDuplicado) {
+                    mostrarAlerta("Erro", "IP já cadastrado",
+                            "Já existe um equipamento com o IP " + ip + ". Use um IP diferente.",
+                            Alert.AlertType.ERROR);
+                } else {
+                    mostrarAlerta("Erro", "Falha ao Salvar",
+                            "Não foi possível salvar o equipamento. Verifique o console para mais detalhes.",
+                            Alert.AlertType.ERROR);
+                }
             }
         });
 
