@@ -4,9 +4,10 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.JsonArray;
 
 public class ControlIdService {
 
@@ -77,29 +78,52 @@ public class ControlIdService {
     }
 
     /**
-     * PASSO 3: Enviar Foto em Base64 para um equipamento dinâmico
+     * PASSO 3: Enviar Foto para um equipamento Control iD.
+     *
+     * Confirmado na documentação oficial (controlid.com.br/docs/access-api):
+     * ao contrário da maioria dos comandos dessa API, este exige
+     * Content-Type: application/octet-stream, com os bytes crus da
+     * imagem no corpo do POST — o user_id vai na Query String, não no body.
+     * Limite: foto deve ter menos de 1MB (algumas versões de firmware
+     * aceitam até 2MB).
      */
-    public void enviarFoto(String ipEquipamento, String sessionToken, long idUsuarioAparelho, String fotoBase64) throws Exception {
-        String url = "http://" + ipEquipamento + "/user_set_image.fcgi?session=" + sessionToken;
+    public void enviarFoto(String ipEquipamento,
+                       String sessionToken,
+                       long idUsuarioAparelho,
+                       String fotoBase64) throws Exception {
 
-        JsonObject jsonBody = new JsonObject();
-        jsonBody.addProperty("user_id", idUsuarioAparelho);
-        jsonBody.addProperty("image", "data:image/jpeg;base64," + fotoBase64);
+    // Timestamp Unix em segundos
+    long timestamp = System.currentTimeMillis() / 1000L;
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(jsonBody.toString()))
-                .build();
+    String url = "http://" + ipEquipamento
+            + "/user_set_image.fcgi"
+            + "?user_id=" + idUsuarioAparelho
+            + "&timestamp=" + timestamp
+            + "&match=0"
+            + "&session=" + sessionToken;
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    byte[] imagemBytes = java.util.Base64.getDecoder().decode(fotoBase64);
 
-        if (response.statusCode() == 200) {
-            System.out.println("Foto associada com sucesso ao ID " + idUsuarioAparelho + " no leitor (" + ipEquipamento + ")");
-        } else {
-            throw new Exception("Erro ao enviar foto para o leitor " + ipEquipamento + ": " + response.body());
-        }
+    HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .header("Content-Type", "application/octet-stream")
+            .POST(HttpRequest.BodyPublishers.ofByteArray(imagemBytes))
+            .build();
+
+    HttpResponse<String> response =
+            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+    System.out.println("URL: " + url);
+    System.out.println("Status: " + response.statusCode());
+    System.out.println("Resposta: " + response.body());
+
+    if (response.statusCode() != 200) {
+        throw new Exception("Erro ao enviar foto para o leitor "
+                + ipEquipamento + ": " + response.body());
     }
+
+    System.out.println("Foto enviada com sucesso!");
+}
 
     /**
      * PASSO 4: Excluir Usuário de um equipamento específico

@@ -6,6 +6,7 @@ C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\cont
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\controller\EquipamentoController.java
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\controller\LoginController.java
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\controller\PessoaController.java
+C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\controller\SincronizacaoController.java
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\controller\TelaConfiguracoesController.java
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\Main.java
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\MainApp.java
@@ -13,3 +14,4 @@ C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\mode
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\model\Operador.java
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\model\Pessoa.java
 C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\service\ControlIdService.java
+C:\Users\HP\Downloads\Controle Acesso\controle-acesso\src\main\java\com\gap\service\SincronizacaoService.java
