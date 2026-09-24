@@ -50,7 +50,7 @@ echo [2/3] Gerando o instalador (.exe) com jpackage...
 if exist instalador rmdir /s /q instalador
 
 jpackage ^
-  --type exe ^
+  --type app-image ^
   --name "GAP Controle de Acesso" ^
   --app-version 1.0 ^
   --input target ^
