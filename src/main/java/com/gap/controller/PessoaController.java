@@ -134,7 +134,18 @@ public class PessoaController {
                 mostrarAlerta("Sucesso", "Operação Realizada", "Dados salvos com sucesso!", Alert.AlertType.INFORMATION);
                 limparFormulario();
                 painelFormulario.setVisible(false);
-                carregarTabela(); 
+                carregarTabela();
+
+                // Sincroniza em background sem travar a UI
+                Thread t = new Thread(() ->
+                    new com.gap.service.SincronizacaoService().sincronizarTudo(
+                        (msg, erro) -> System.out.println((erro ? "[ERRO] " : "") + msg),
+                        pct -> {}
+                    )
+                );
+                t.setDaemon(true);
+                t.start();
+
             } else {
                 mostrarAlerta("Erro", "Falha ao Salvar", "Não foi possível salvar as alterações.", Alert.AlertType.ERROR);
             }

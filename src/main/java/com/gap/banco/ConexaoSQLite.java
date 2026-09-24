@@ -873,4 +873,76 @@ public static Connection conectar() {
             return false;
         }
     }
+
+    // ==========================================================
+    // MAPEAMENTO PESSOA ↔ EQUIPAMENTO
+    // ==========================================================
+
+    /**
+     * Retorna o ID que o equipamento atribuiu a uma pessoa na última
+     * sincronização, ou null se essa pessoa nunca foi enviada para
+     * aquele equipamento.
+     */
+    public static Long buscarIdNoEquipamento(int usuarioId, int equipamentoId) {
+
+        String sql =
+                "SELECT id_no_equipamento "
+                + "FROM equipamento_usuarios "
+                + "WHERE usuario_id = ? AND equipamento_id = ?";
+
+        try (
+            Connection conn = conectar();
+            PreparedStatement pstmt = conn.prepareStatement(sql)
+        ) {
+
+            pstmt.setInt(1, usuarioId);
+            pstmt.setInt(2, equipamentoId);
+
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getLong("id_no_equipamento");
+            }
+
+        } catch (Exception e) {
+            System.out.println(
+                "Erro ao buscar ID no equipamento: " + e.getMessage()
+            );
+        }
+
+        return null;
+    }
+
+    /**
+     * Grava (ou atualiza) o ID que o equipamento atribuiu a uma pessoa.
+     * Usado após cada criação bem-sucedida durante a sincronização.
+     */
+    public static void salvarMapeamentoEquipamento(
+            int usuarioId,
+            int equipamentoId,
+            long idNoEquipamento) {
+
+        // INSERT OR REPLACE respeita a PRIMARY KEY (usuario_id, equipamento_id)
+        // e atualiza o id_no_equipamento se o par já existir.
+        String sql =
+                "INSERT OR REPLACE INTO equipamento_usuarios "
+                + "(usuario_id, equipamento_id, id_no_equipamento) "
+                + "VALUES (?, ?, ?)";
+
+        try (
+            Connection conn = conectar();
+            PreparedStatement pstmt = conn.prepareStatement(sql)
+        ) {
+
+            pstmt.setInt(1, usuarioId);
+            pstmt.setInt(2, equipamentoId);
+            pstmt.setLong(3, idNoEquipamento);
+            pstmt.executeUpdate();
+
+        } catch (Exception e) {
+            System.out.println(
+                "Erro ao salvar mapeamento equipamento: " + e.getMessage()
+            );
+        }
+    }
 }

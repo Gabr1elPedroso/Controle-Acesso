@@ -30,6 +30,11 @@ public class DashboardController {
     }
 
     @FXML
+    public void abrirTelaSincronizacao() {
+        carregarTela("/tela_sincronizacao.fxml");
+    }
+
+    @FXML
     public void abrirTelaConfiguracoes() {
         carregarTela("/tela_configuracoes.fxml");
     }
