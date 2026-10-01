@@ -1,7 +1,13 @@
 package com.gap.controller;
 
 import com.gap.banco.ConexaoSQLite;
+import com.gap.model.Categoria;
 import com.gap.model.Equipamento;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -9,6 +15,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -29,6 +36,10 @@ public class EquipamentoController {
     @FXML private TextField campoUsuario;
     @FXML private PasswordField campoSenha;
     @FXML private TextField campoPorta;
+
+    @FXML private CheckBox chkRestringirCategoria;
+    @FXML private VBox painelCategorias;
+    private final Map<CheckBox, Categoria> checkBoxesCategorias = new HashMap<>();
     
     @FXML private Button btnExcluirEquip;
     @FXML private Button btnSalvarEquip;
@@ -48,6 +59,20 @@ public class EquipamentoController {
         carregarTabela();
         configurarBotoes();
         configurarSelecaoTabela();
+
+        // Monta um CheckBox por categoria cadastrada (Funcionário,
+        // Diretoria, Visitante, e quaisquer outras que existirem)
+        painelCategorias.managedProperty().bind(painelCategorias.visibleProperty());
+        painelCategorias.setVisible(false);
+
+        for (Categoria categoria : ConexaoSQLite.listarCategorias()) {
+            CheckBox cb = new CheckBox(categoria.getNome());
+            checkBoxesCategorias.put(cb, categoria);
+            painelCategorias.getChildren().add(cb);
+        }
+
+        chkRestringirCategoria.setOnAction(e ->
+                painelCategorias.setVisible(chkRestringirCategoria.isSelected()));
     }
 
     private void carregarTabela() {
@@ -91,10 +116,30 @@ public class EquipamentoController {
             }
 
             if (sucesso) {
+                carregarTabela();
+
+                int equipamentoId = (equipamentoSelecionado != null)
+                        ? equipamentoSelecionado.getId()
+                        : listaEquipamentos.stream()
+                                .filter(e -> e.getIp().equalsIgnoreCase(ip))
+                                .findFirst()
+                                .map(Equipamento::getId)
+                                .orElse(-1);
+
+                if (equipamentoId != -1) {
+                    Set<Integer> categoriasSelecionadas = new HashSet<>();
+                    for (Map.Entry<CheckBox, Categoria> entry : checkBoxesCategorias.entrySet()) {
+                        if (entry.getKey().isSelected()) {
+                            categoriasSelecionadas.add(entry.getValue().getId());
+                        }
+                    }
+                    ConexaoSQLite.salvarRestricaoCategorias(
+                            equipamentoId, chkRestringirCategoria.isSelected(), categoriasSelecionadas);
+                }
+
                 mostrarAlerta("Sucesso", "Operação Realizada", "Equipamento salvo com sucesso!", Alert.AlertType.INFORMATION);
                 limparFormulario();
                 painelFormularioEquip.setVisible(false);
-                carregarTabela();
             } else {
                 // Verifica se já existe equipamento com esse IP ou Nome
                 // para dar uma mensagem mais precisa ao usuário
@@ -144,6 +189,17 @@ public class EquipamentoController {
                 campoPorta.setText(String.valueOf(selecionado.getporta()));
                 campoUsuario.setText(selecionado.getUsuario());
                 campoSenha.setText(selecionado.getSenha());
+
+                boolean restringe = ConexaoSQLite.restringePorCategoria(selecionado.getId());
+                Set<Integer> permitidas = ConexaoSQLite.categoriasPermitidas(selecionado.getId());
+
+                chkRestringirCategoria.setSelected(restringe);
+                painelCategorias.setVisible(restringe);
+
+                for (Map.Entry<CheckBox, Categoria> entry : checkBoxesCategorias.entrySet()) {
+                    boolean marcado = restringe && permitidas != null && permitidas.contains(entry.getValue().getId());
+                    entry.getKey().setSelected(marcado);
+                }
             }
         });
     }
@@ -154,6 +210,12 @@ public class EquipamentoController {
         campoPorta.clear();
         campoUsuario.setText("admin");
         campoSenha.setText("admin");
+
+        chkRestringirCategoria.setSelected(false);
+        painelCategorias.setVisible(false);
+        for (CheckBox cb : checkBoxesCategorias.keySet()) {
+            cb.setSelected(false);
+        }
     }
 
     private void mostrarAlerta(String titulo, String cabecalho, String mensagem, Alert.AlertType tipo) {

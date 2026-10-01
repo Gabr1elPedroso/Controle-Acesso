@@ -13,6 +13,7 @@ import java.util.List;
 
 import org.mindrot.jbcrypt.BCrypt;
 
+import com.gap.model.Categoria;
 import com.gap.model.Equipamento;
 import com.gap.model.Operador;
 
@@ -268,6 +269,39 @@ public static Connection conectar() {
                     + "ADD COLUMN senha TEXT NOT NULL DEFAULT 'admin'"
                 );
             }
+            if (!colunas.contains("restringir_por_categoria")) {
+                stmt.execute(
+                    "ALTER TABLE equipamentos "
+                    + "ADD COLUMN restringir_por_categoria INTEGER NOT NULL DEFAULT 0"
+                );
+            }
+            if (!colunas.contains("access_rule_id_dispositivo")) {
+                stmt.execute(
+                    "ALTER TABLE equipamentos "
+                    + "ADD COLUMN access_rule_id_dispositivo INTEGER"
+                );
+            }
+        }
+
+        // Tabelas de apoio à sincronização de categorias/grupos de acesso.
+        // Ficam aqui (não em criarTabelas) porque dependem de equipamentos
+        // e categorias já existirem.
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute(
+                "CREATE TABLE IF NOT EXISTS equipamento_categorias_permitidas ("
+                + "equipamento_id INTEGER NOT NULL, "
+                + "categoria_id INTEGER NOT NULL, "
+                + "PRIMARY KEY (equipamento_id, categoria_id)"
+                + ");"
+            );
+            stmt.execute(
+                "CREATE TABLE IF NOT EXISTS equipamento_grupos ("
+                + "equipamento_id INTEGER NOT NULL, "
+                + "categoria_id INTEGER NOT NULL, "
+                + "grupo_id_dispositivo INTEGER NOT NULL, "
+                + "PRIMARY KEY (equipamento_id, categoria_id)"
+                + ");"
+            );
         }
     }
 
@@ -943,6 +977,223 @@ public static Connection conectar() {
             System.out.println(
                 "Erro ao salvar mapeamento equipamento: " + e.getMessage()
             );
+        }
+    }
+
+    /**
+     * Remove o mapeamento local quando uma pessoa deixa de ser permitida
+     * num equipamento (evita que ela fique "órfã" na tabela local depois
+     * de ser removida do dispositivo).
+     */
+    public static void removerMapeamentoEquipamento(int usuarioId, int equipamentoId) {
+
+        String sql = "DELETE FROM equipamento_usuarios WHERE usuario_id = ? AND equipamento_id = ?";
+
+        try (
+            Connection conn = conectar();
+            PreparedStatement pstmt = conn.prepareStatement(sql)
+        ) {
+            pstmt.setInt(1, usuarioId);
+            pstmt.setInt(2, equipamentoId);
+            pstmt.executeUpdate();
+        } catch (Exception e) {
+            System.out.println("Erro ao remover mapeamento equipamento: " + e.getMessage());
+        }
+    }
+
+    // ==========================================================
+    // CATEGORIAS E RESTRIÇÃO POR EQUIPAMENTO
+    // ==========================================================
+
+    public static List<Categoria> listarCategorias() {
+
+        List<Categoria> lista = new ArrayList<>();
+        String sql = "SELECT id, nome FROM categorias ORDER BY nome";
+
+        try (
+            Connection conn = conectar();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql)
+        ) {
+            while (rs.next()) {
+                lista.add(new Categoria(rs.getInt("id"), rs.getString("nome")));
+            }
+        } catch (Exception e) {
+            System.out.println("Erro ao listar categorias: " + e.getMessage());
+        }
+
+        return lista;
+    }
+
+    public static boolean restringePorCategoria(int equipamentoId) {
+
+        String sql = "SELECT restringir_por_categoria FROM equipamentos WHERE id = ?";
+
+        try (
+            Connection conn = conectar();
+            PreparedStatement pstmt = conn.prepareStatement(sql)
+        ) {
+            pstmt.setInt(1, equipamentoId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("restringir_por_categoria") == 1;
+            }
+        } catch (Exception e) {
+            System.out.println("Erro ao verificar restrição de categoria: " + e.getMessage());
+        }
+
+        return false;
+    }
+
+    /**
+     * Retorna null se o equipamento NÃO restringe por categoria (ou seja,
+     * todas as categorias têm acesso liberado nele). Caso contrário,
+     * retorna o conjunto de IDs de categoria permitidos nesse equipamento.
+     */
+    public static java.util.Set<Integer> categoriasPermitidas(int equipamentoId) {
+
+        if (!restringePorCategoria(equipamentoId)) {
+            return null;
+        }
+
+        java.util.Set<Integer> ids = new java.util.HashSet<>();
+        String sql = "SELECT categoria_id FROM equipamento_categorias_permitidas WHERE equipamento_id = ?";
+
+        try (
+            Connection conn = conectar();
+            PreparedStatement pstmt = conn.prepareStatement(sql)
+        ) {
+            pstmt.setInt(1, equipamentoId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                ids.add(rs.getInt("categoria_id"));
+            }
+        } catch (Exception e) {
+            System.out.println("Erro ao buscar categorias permitidas: " + e.getMessage());
+        }
+
+        return ids;
+    }
+
+    /**
+     * Salva de uma vez a flag de restrição e a lista de categorias
+     * permitidas de um equipamento (usado pela tela de Equipamentos).
+     */
+    public static void salvarRestricaoCategorias(
+            int equipamentoId,
+            boolean restringir,
+            java.util.Set<Integer> categoriaIdsPermitidas) {
+
+        try (Connection conn = conectar()) {
+
+            try (PreparedStatement p1 = conn.prepareStatement(
+                    "UPDATE equipamentos SET restringir_por_categoria = ? WHERE id = ?")) {
+                p1.setInt(1, restringir ? 1 : 0);
+                p1.setInt(2, equipamentoId);
+                p1.executeUpdate();
+            }
+
+            try (PreparedStatement p2 = conn.prepareStatement(
+                    "DELETE FROM equipamento_categorias_permitidas WHERE equipamento_id = ?")) {
+                p2.setInt(1, equipamentoId);
+                p2.executeUpdate();
+            }
+
+            if (restringir && categoriaIdsPermitidas != null) {
+                try (PreparedStatement p3 = conn.prepareStatement(
+                        "INSERT INTO equipamento_categorias_permitidas (equipamento_id, categoria_id) VALUES (?, ?)")) {
+                    for (Integer catId : categoriaIdsPermitidas) {
+                        p3.setInt(1, equipamentoId);
+                        p3.setInt(2, catId);
+                        p3.addBatch();
+                    }
+                    p3.executeBatch();
+                }
+            }
+
+        } catch (Exception e) {
+            System.out.println("Erro ao salvar restrição de categorias: " + e.getMessage());
+        }
+    }
+
+    // ==========================================================
+    // CACHE DE IDS CRIADOS NO DISPOSITIVO (grupo/regra de acesso)
+    // ==========================================================
+
+    public static Long getAccessRuleIdDispositivo(int equipamentoId) {
+
+        String sql = "SELECT access_rule_id_dispositivo FROM equipamentos WHERE id = ?";
+
+        try (
+            Connection conn = conectar();
+            PreparedStatement pstmt = conn.prepareStatement(sql)
+        ) {
+            pstmt.setInt(1, equipamentoId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                long v = rs.getLong("access_rule_id_dispositivo");
+                return rs.wasNull() ? null : v;
+            }
+        } catch (Exception e) {
+            System.out.println("Erro ao buscar access_rule_id_dispositivo: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    public static void salvarAccessRuleIdDispositivo(int equipamentoId, long accessRuleId) {
+
+        String sql = "UPDATE equipamentos SET access_rule_id_dispositivo = ? WHERE id = ?";
+
+        try (
+            Connection conn = conectar();
+            PreparedStatement pstmt = conn.prepareStatement(sql)
+        ) {
+            pstmt.setLong(1, accessRuleId);
+            pstmt.setInt(2, equipamentoId);
+            pstmt.executeUpdate();
+        } catch (Exception e) {
+            System.out.println("Erro ao salvar access_rule_id_dispositivo: " + e.getMessage());
+        }
+    }
+
+    public static Long getGrupoIdDispositivo(int equipamentoId, int categoriaId) {
+
+        String sql = "SELECT grupo_id_dispositivo FROM equipamento_grupos "
+                + "WHERE equipamento_id = ? AND categoria_id = ?";
+
+        try (
+            Connection conn = conectar();
+            PreparedStatement pstmt = conn.prepareStatement(sql)
+        ) {
+            pstmt.setInt(1, equipamentoId);
+            pstmt.setInt(2, categoriaId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getLong("grupo_id_dispositivo");
+            }
+        } catch (Exception e) {
+            System.out.println("Erro ao buscar grupo_id_dispositivo: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    public static void salvarGrupoIdDispositivo(int equipamentoId, int categoriaId, long grupoId) {
+
+        String sql = "INSERT OR REPLACE INTO equipamento_grupos "
+                + "(equipamento_id, categoria_id, grupo_id_dispositivo) VALUES (?, ?, ?)";
+
+        try (
+            Connection conn = conectar();
+            PreparedStatement pstmt = conn.prepareStatement(sql)
+        ) {
+            pstmt.setInt(1, equipamentoId);
+            pstmt.setInt(2, categoriaId);
+            pstmt.setLong(3, grupoId);
+            pstmt.executeUpdate();
+        } catch (Exception e) {
+            System.out.println("Erro ao salvar grupo_id_dispositivo: " + e.getMessage());
         }
     }
 }

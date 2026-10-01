@@ -236,6 +236,21 @@
 
             </HBox>
 
+            <VBox spacing="8.0">
+
+                <CheckBox
+                    fx:id="chkRestringirCategoria"
+                    text="Restringir por categoria"
+                    textFill="#334155" />
+
+                <VBox
+                    fx:id="painelCategorias"
+                    spacing="4.0"
+                    style="-fx-padding: 0 0 0 20;">
+                </VBox>
+
+            </VBox>
+
             <HBox
                 alignment="CENTER_RIGHT"
                 spacing="10.0">
